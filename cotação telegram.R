@@ -8,6 +8,9 @@ library(PerformanceAnalytics)
 library(quantmod) 
 library(dplyr)
 
+cod_acoes <- read.csv("~/Finances/cod_acoes.txt", sep="")  
+cod_acoes <- as.vector(t(cod_acoes))
+
 carteira <- c("BBAS3.SA","BBSE3.SA","CSAN3.SA","ITUB4.SA","MGLU3.SA","TIET11.SA")
 
 bot <- TGBot$new(token = bot_token('ConsultaBolsaBot'))
@@ -35,22 +38,22 @@ consulta_preco <- function(carteira)
 }
 
 
-acompanhar_cotacao <- function(frequencia = 30)
+acompanhar_cotacao <- function(x,perct,freq)
 {
   #load("historico.RData")
   # loop infinito
   while(TRUE) {
-    # pega a cota??o da carteira informada, atrav?s da API
-    nova_consulta <- consulta_preco(carteira)
+    # pega a cotacao da carteira informada, atraves da API
+    nova_consulta <- consulta_preco(x)
     #print(nova_consulta)
-    for(j in 1:length(carteira))
+    for(j in 1:length(x))
     {
-      if(nova_consulta$variacao[j] < -1) {
+      if(nova_consulta$variacao[j] < -perct) {
         bot$sendMessage('Oportunidade de compra!')
         bot$sendMessage(nova_consulta$carteira[j])
         bot$sendMessage(nova_consulta$variacao.perct[j])
       }
-      if(nova_consulta$variacao[j] > 1) {
+      if(nova_consulta$variacao[j] > perct) {
         bot$sendMessage('Oportunidade de venda!')
         bot$sendMessage(nova_consulta$carteira[j])
         bot$sendMessage(nova_consulta$variacao.perct[j])
@@ -60,5 +63,5 @@ acompanhar_cotacao <- function(frequencia = 30)
     #historico <- bind_rows(historico, nova_consulta)
     #   save(historico, file = "historico.RData")
   }
-  Sys.sleep(frequencia)
+  Sys.sleep(freq)
 }
