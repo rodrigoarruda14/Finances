@@ -5,17 +5,31 @@ library(tidyr)
 
 ## 
 
-getSymbols('BBAS3',src = 'google')
+symbolList <- read.csv("~/Finances/cod_acoes.txt", sep="")  
+symbolList <- as.data.frame(symbolList)
 
-x <- BBAS3 %>% as.data.frame() %>% mutate(date = index(BBAS3)) %>%
-  select(date, BBAS3.Open, BBAS3.Close, BBAS3.High, BBAS3.Low, BBAS3.Volume) %>%
-  rename(open = BBAS3.Open, close = BBAS3.Close, high = BBAS3.High, low = BBAS3.Low, volume = BBAS3.Volume)
+y <- head(symbolList)
 
-x %>% drop_na() %>%
+d <- as.vector(t(extract(y, col= Codigo, "[[A-Z]+[0-9]]")))
+
+for (ii in d){
+  
+  data <- getSymbols(Symbols = ii,
+                     src = 'google', 
+                     auto.assign = FALSE)
+  
+colnames(data) <- c("open","high","low","close","volume")  
+print(ii)
+
+x <- data %>% as.data.frame() %>% mutate(date = index(data)) %>% drop_na() %>%
+  select(date, open, close, high, low, volume)
+
+x %>% 
   mutate(ano = format(date,'%Y'), up = c(((.$close[2:length(.$close)]-.$close[1:length(.$close)-1])>0),"NA")) %>% group_by(ano) %>%
-  summarise(minima = round(min(close,na.rm = TRUE),2), maxima = max(close,na.rm = TRUE), abertura = first(close), fechamento = last(close), retorno = round((fechamento/abertura),2)-1, qtd_ups = sum(up=='TRUE'), qtd_downs = sum(up=='FALSE')) %>%
-  ungroup() %>% left_join(.,mutate(as.data.frame(annualReturn(BBAS3)), ano = format(index(annualReturn(BBAS3)), '%Y'))) %>%
+  summarise(minima = round(min(close,na.rm = TRUE),2), maxima = max(close,na.rm = TRUE), abertura = first(close), fechamento = last(close), qtd_ups = sum(up=='TRUE'), qtd_downs = sum(up=='FALSE')) %>%
+  ungroup() %>% left_join(.,mutate(as.data.frame(round(annualReturn(data),3)), ano = format(index(annualReturn(data)), '%Y'))) %>%
   knitr::kable()
+}
 
 
 

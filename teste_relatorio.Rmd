@@ -1,0 +1,60 @@
+---
+title: "Relatório Ativos"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+library(quantmod)
+library(dplyr)
+library(tidyr)
+
+## 
+
+symbolList <- read.csv("~/Finances/cod_acoes.txt", sep="")  
+symbolList <- as.data.frame(symbolList)
+
+y <- head(symbolList)
+
+d <- as.vector(t(extract(y, col= Codigo, "[[A-Z]+[0-9]]")))
+
+for (ii in d){
+  
+  data <- getSymbols(Symbols = ii,
+                     src = 'google', 
+                     auto.assign = FALSE)
+  
+colnames(data) <- c("open","high","low","close","volume")  
+
+x <- data %>% as.data.frame() %>% mutate(date = index(data)) %>% drop_na() %>%
+  select(date, open, close, high, low, volume)
+
+z <- x %>% 
+  mutate(ano = format(date,'%Y'), up = c(((.$close[2:length(.$close)]-.$close[1:length(.$close)-1])>0),"NA")) %>% group_by(ano) %>%
+  summarise(minima = round(min(close,na.rm = TRUE),2), maxima = max(close,na.rm = TRUE), abertura = first(close), fechamento = last(close), qtd_ups = sum(up=='TRUE'), qtd_downs = sum(up=='FALSE')) %>%
+  ungroup() %>% left_join(.,mutate(as.data.frame(round(annualReturn(data),3)), ano = format(index(annualReturn(data)), '%Y'))) %>%
+  knitr::kable()
+
+print(ii)
+print(z)
+}
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
