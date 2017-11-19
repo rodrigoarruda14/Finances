@@ -2,6 +2,8 @@
 library(quantmod)
 library(dplyr)
 library(tidyr)
+library(PerformanceAnalytics)
+library(ggplot2)
 
 ## 
 
@@ -10,7 +12,7 @@ symbolList <- as.data.frame(symbolList)
 
 y <- head(symbolList)
 
-d <- as.vector(t(extract(y, col= Codigo, "[[A-Z]+[0-9]]")))
+d <- as.vector(t(extract(y, col= Codigo, "[[A-Z]+[0-9]]"))) %>% paste0("BVMF:",.)
 
 for (ii in d){
   
@@ -19,62 +21,57 @@ for (ii in d){
                      auto.assign = FALSE)
   
 colnames(data) <- c("open","high","low","close","volume")  
-print(ii)
 
-x <- data %>% as.data.frame() %>% mutate(date = index(data)) %>% drop_na() %>%
-  select(date, open, close, high, low, volume)
+x <- data %>% as.data.frame() %>% mutate(date = index(data)) %>% drop_na() 
 
-x %>% 
+tab <- x %>% 
   mutate(ano = format(date,'%Y'), up = c(((.$close[2:length(.$close)]-.$close[1:length(.$close)-1])>0),"NA")) %>% group_by(ano) %>%
-  summarise(minima = round(min(close,na.rm = TRUE),2), maxima = max(close,na.rm = TRUE), abertura = first(close), fechamento = last(close), qtd_ups = sum(up=='TRUE'), qtd_downs = sum(up=='FALSE')) %>%
+  summarise(Open = first(open), Close = last(close), Min. = round(min(close,na.rm = TRUE),2), Max. = max(close,na.rm = TRUE), number.ups = sum(up=='TRUE'), number.downs = sum(up=='FALSE')) %>%
   ungroup() %>% left_join(.,mutate(as.data.frame(round(annualReturn(data),3)), ano = format(index(annualReturn(data)), '%Y'))) %>%
   knitr::kable()
+
+print(ii)
+print(tab)
+
+cycles.dates<-c("2015-12-02/2016-08-31")
+risk.dates = c("2017-05-17")
+risk.labels = c("Delação JBS")
+
+chart.TimeSeries(data[,4], main = 'Banco do Brasil', colorset = "darkblue", 
+                 period.areas = cycles.dates, period.color = "lightblue",
+                 event.lines = risk.dates, event.labels = risk.labels, 
+                 event.color = "darkred", lwd = 2,)  
+
 }
 
 
+##############################
 
-## RETURNS
 
-data <- BBAS3
-results <- NULL
 
-for (ii in symbolList){
-  
-  data <- getSymbols('BBAS3',
+  data <- getSymbols(Symbols = 'BVMF:BBAS3',
                      src = 'google', 
-                     from = "2017-01-01", 
                      auto.assign = FALSE)
   
-  colnames(data) <- c("open","high","low","close","volume")
+  colnames(data) <- c("open","high","low","close","volume")  
   
-  dailyRtn <- (as.numeric(data[2:nrow(data),"close"])/as.numeric(data[1:(nrow(data)-1),"close"])) - 1
-  intradayRtn <- (as.numeric(data[,"close"])/as.numeric(data[,"open"]))-1
-  overnightRtn <- (as.numeric(data[2:nrow(data),"open"])/as.numeric(data[1:(nrow(data)-1),"close"])) - 1
+  x <- data %>% as.data.frame() %>% mutate(date = index(data)) %>% drop_na() 
   
-  results <- rbind(results,cbind(
-    paste(round(100 * sum(dailyRtn,na.rm=TRUE),1),"%",sep=""),
-    paste(round(100 * sum(intradayRtn,na.rm=TRUE),1),"%",sep=""),
-    paste(round(100 * sum(overnightRtn,na.rm=TRUE),1),"%",sep="")))
-} 
-colnames(results) <- c("dailyRtn","intradayRtn","overnightRtn")
-rownames(results) <- symbolList
+x %>% 
+    mutate(ano = format(date,'%Y'), up = c(((.$close[2:length(.$close)]-.$close[1:length(.$close)-1])>0),"NA")) %>% group_by(ano) %>%
+    summarise(Open = first(open), Close = last(close), Min. = round(min(close,na.rm = TRUE),2), Max. = max(close,na.rm = TRUE), number.ups = sum(up=='TRUE'), number.downs = sum(up=='FALSE')) %>%
+    ungroup() %>% left_join(.,mutate(as.data.frame(round(annualReturn(data),3)), ano = format(index(annualReturn(data)), '%Y'))) %>%
+    knitr::kable()
 
+tail(ave(x$close, FUN=function(x) c(0, diff(x))))
+sign(tail(ave(x$close, FUN=function(x) c(0, diff(x)))))
+y <- rle(c(1,0,0,0,1,0,0,0,0,0,2,0,0))
+y$lengths[y$values==0]
 
-# Quick returns - quantmod style 
+ 
+tail(ave(data['2017',4], FUN = function(x) c(0, diff(x))))
 
-getSymbols("SBUX") 
+close  <- x %>% filter(date >= '2017-01-01') %>% .$close
 
-dailyReturn(SBUX) # returns by day 
-weeklyReturn(SBUX) # returns by week 
-monthlyReturn(SBUX) # returns by month, indexed by yearmon 
-
-# daily,weekly,monthly,quarterly, and yearly 
-allReturns(SBUX) # note the plural
-
-
-BBAS3['2017-08/']
-monthlyReturn(BBAS3['2017-08/'])
-
-mutate(as.data.frame(annualReturn(BBAS3)), ano = format(index(annualReturn(BBAS3)), '%Y'))
-
-
+teste <- close %>% ave( FUN = function(x) c(0, diff(x))) %>% sign() %>% rle() 
+teste$lengths[teste$values==1]

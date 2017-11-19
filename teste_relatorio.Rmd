@@ -9,14 +9,32 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## R Markdown
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+Relatório que reune todos os ativos do indice Ibovespa. Medidas apresentadas:
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+* Open: é o valor de abertura do ativo no ano correspondente;
 
-```{r cars}
+* Close: é o valor de fechamento do ativo no ano correspondente;
+
+* Min: é o valor de fechamento mínimo diário do ativo no ano correspondente;
+
+* Max: é o valor de fechamento máximo diário do ativo no ano correspondente;
+
+* number.ups: é a quantidade de vezes que o ativo valorizou no ano;
+
+* number.downs: é a quantidade de vezes que o ativo desvalorizou no ano;
+
+* yearly.returns: é a valorização percentual no ano correspondente;
+
+
+
+```{r cars, echo=FALSE, warning=FALSE, message=FALSE, results='asis'}
+
+
 library(quantmod)
 library(dplyr)
 library(tidyr)
+library(PerformanceAnalytics)
+library(ggplot2)
 
 ## 
 
@@ -25,7 +43,7 @@ symbolList <- as.data.frame(symbolList)
 
 y <- head(symbolList)
 
-d <- as.vector(t(extract(y, col= Codigo, "[[A-Z]+[0-9]]")))
+d <- as.vector(t(extract(y, col= Codigo, "[[A-Z]+[0-9]]"))) %>% paste0("BVMF:",.)
 
 for (ii in d){
   
@@ -35,26 +53,27 @@ for (ii in d){
   
 colnames(data) <- c("open","high","low","close","volume")  
 
-x <- data %>% as.data.frame() %>% mutate(date = index(data)) %>% drop_na() %>%
-  select(date, open, close, high, low, volume)
+x <- data %>% as.data.frame() %>% mutate(date = index(data)) %>% drop_na() 
 
-z <- x %>% 
+tab <- x %>% 
   mutate(ano = format(date,'%Y'), up = c(((.$close[2:length(.$close)]-.$close[1:length(.$close)-1])>0),"NA")) %>% group_by(ano) %>%
-  summarise(minima = round(min(close,na.rm = TRUE),2), maxima = max(close,na.rm = TRUE), abertura = first(close), fechamento = last(close), qtd_ups = sum(up=='TRUE'), qtd_downs = sum(up=='FALSE')) %>%
+  summarise(Open = first(open), Close = last(close), Min. = round(min(close,na.rm = TRUE),2), Max. = max(close,na.rm = TRUE), number.ups = sum(up=='TRUE'), number.downs = sum(up=='FALSE')) %>%
   ungroup() %>% left_join(.,mutate(as.data.frame(round(annualReturn(data),3)), ano = format(index(annualReturn(data)), '%Y'))) %>%
   knitr::kable()
 
 print(ii)
-print(z)
+print(tab)
+
+cycles.dates<-c("2015-12-02/2016-08-31")
+risk.dates = c("2017-05-17")
+risk.labels = c("Delação JBS")
+
+chart.TimeSeries(data[,4], colorset = "darkblue", 
+                 period.areas = cycles.dates, period.color = "lightblue",
+                 event.lines = risk.dates, event.labels = risk.labels, 
+                 event.color = "darkred", lwd = 2,)  
+
 }
+
 ```
 
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
