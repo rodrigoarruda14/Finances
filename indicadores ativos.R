@@ -68,10 +68,22 @@ sign(tail(ave(x$close, FUN=function(x) c(0, diff(x)))))
 y <- rle(c(1,0,0,0,1,0,0,0,0,0,2,0,0))
 y$lengths[y$values==0]
 
- 
-tail(ave(data['2017',4], FUN = function(x) c(0, diff(x))))
+
+
+anos <- x %>% mutate(ano=format(date, '%Y')) %>% distinct(.$ano) %>% rename(ano = ".$ano") %>% t() %>% as.vector()
 
 close  <- x %>% filter(date >= '2017-01-01') %>% .$close
 
 teste <- close %>% ave( FUN = function(x) c(0, diff(x))) %>% sign() %>% rle() 
-teste$lengths[teste$values==1]
+table(teste$lengths[teste$values==-1])
+
+
+for(j in anos){
+  
+  close  <- x %>% filter(date >= paste0(j,"-01-01")) %>% .$close
+  print(paste0(j,"-01-01"))
+  teste <- close %>% ave( FUN = function(x) c(0, diff(x))) %>% sign() %>% rle() 
+  print(teste$lengths[teste$values==1])
+}
+
+
