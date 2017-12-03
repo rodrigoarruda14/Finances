@@ -1,6 +1,8 @@
 ---
-title: "Relatório Ativos"
-output: html_document
+title: "RelatÃ³rio Ativos"
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
