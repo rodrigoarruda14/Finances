@@ -66,7 +66,7 @@ data <- getSymbols(Symbols = 'BVMF:BOVA11',
   
 colnames(data) <- c("open","high","low","close","volume")  
   
-x <- data %>% as.data.frame() %>% mutate(date = index(data), valuation = ave(.$close, FUN = function(y) c(0, diff(y)))) %>% drop_na() 
+x <- data %>% as.data.frame() %>% mutate(date = index(data)) %>% drop_na() %>% mutate(valuation = ave(.$close, FUN = function(y) c(0, diff(y))), daily.return = as.vector(dailyReturn(data)))
 
 tab <- x %>% 
   mutate(ano = format(date,'%Y'), up = c(((.$close[2:length(.$close)]-.$close[1:length(.$close)-1])>0),"NA")) %>% group_by(ano) %>%
@@ -87,7 +87,8 @@ chart.TimeSeries(data[,4], main = ii, colorset = "darkblue",
 
 historical.min <- x %>% filter(close==min(close))
 historical.max <- x %>% filter(close==max(close))
-
+avg.daily.devaluation <- x%>% filter(daily.return < 0) %>% summarize(avg.dev = round((mean(daily.return)*100),3)) %>% paste0('%') 
+avg.daily.evaluation  <- x%>% filter(daily.return > 0) %>% summarize(avg.ev = round((mean(daily.return)*100),3)) %>% paste0('%') 
 
 ### average number of consecutive devaluations
 
