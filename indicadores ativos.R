@@ -58,7 +58,7 @@ for(j in anos){
 
 ##############################
 
-
+### summary annual indicators
 
 data <- getSymbols(Symbols = 'BVMF:BOVA11',
                    src = 'google', 
@@ -76,6 +76,9 @@ tab <- x %>%
 
 print(tab)
 
+
+### asset price evolution
+
 cycles.dates<-c("2015-12-02/2016-08-31")
 risk.dates = c("2017-05-17")
 risk.labels = c("Delação JBS")
@@ -85,34 +88,41 @@ chart.TimeSeries(data[,4], main = ii, colorset = "darkblue",
                  event.lines = risk.dates, event.labels = risk.labels, 
                  event.color = "darkred", lwd = 2,)  
 
-historical.min <- x %>% filter(close==min(close))
-historical.max <- x %>% filter(close==max(close))
-avg.daily.devaluation <- x%>% filter(daily.return < 0) %>% summarize(avg.dev = round((mean(daily.return)*100),3)) %>% paste0('%') 
-avg.daily.evaluation  <- x%>% filter(daily.return > 0) %>% summarize(avg.ev = round((mean(daily.return)*100),3)) %>% paste0('%') 
+### min/max historical
+
+historical.min <- x %>% filter(close==min(close)) %>% print()
+historical.max <- x %>% filter(close==max(close)) %>% print()
+
+### average daily evaluation/devaluation
+
+avg.daily.devaluation <- x%>% filter(daily.return < 0) %>% summarize(avg.dev = round((mean(daily.return)*100),3)) %>% paste0('%') %>% print()
+avg.daily.evaluation  <- x%>% filter(daily.return > 0) %>% summarize(avg.ev = round((mean(daily.return)*100),3)) %>% paste0('%') %>% print()
 
 ### average number of consecutive devaluations
 
 anos <- x %>% mutate(ano=format(date, '%Y')) %>% distinct(.$ano) %>% rename(ano = ".$ano") %>% t() %>% as.vector()
-close <- x %>% filter(date >= '2017-01-01') %>% .$close
-
-downs <- NULL
+avg.sequent.downgrade <- NULL
 
 for(j in anos){
   
   base  <- x %>% filter(date >= paste0(j,"-01-01")) 
   teste <- base$close %>% ave( FUN = function(x) c(0, diff(x))) %>% sign() %>% rle() 
-#  print(j)
-#  print(teste$lengths[teste$values==-1])
-  downs[j] <- mean(teste$lengths[teste$values==-1])
+  print(j)
+  print(teste$lengths[teste$values==-1])
+  avg.sequent.downgrade[j] <- mean(teste$lengths[teste$values==-1])
 }
 
 
+### data distribution of downgrade in sequence
 
-a <- (teste$lengths[teste$values==-1])
-ks.test(jitter(a),"ppois", lambda = 1.8)
-
- 
 teste <- x$close %>% ave( FUN = function(x) c(0, diff(x))) %>% sign() %>% rle() 
-a <- teste$lengths[teste$values==-1]
+ups <- teste$lengths[teste$values==1]
+downs <- teste$lengths[teste$values==-1]
 
-chisq.test(a,rpois(649,2.04))
+t2 <- c(rep(0,length(ups)),downs)
+
+t3 <- chisq.test(t2,rpois(n = length(t2), lambda = 1))
+
+cat("H0: A Amostra tem distribuição Poisson? \n", t3$p.value) 
+
+
