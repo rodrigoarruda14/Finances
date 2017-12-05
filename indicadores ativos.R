@@ -125,4 +125,10 @@ t3 <- chisq.test(t2,rpois(n = length(t2), lambda = 1))
 
 cat("H0: A Amostra tem distribuição Poisson? \n", t3$p.value) 
 
+### calculate Poisson distribution P(x>=2)
 
+1 - ppois(q = 2,lambda = 1)
+
+### calculate Binomial distribution P(x=1)
+
+teste$values %>% as.data.frame() %>% rename(values = ".") %>% filter(values!= 0)
