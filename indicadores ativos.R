@@ -77,21 +77,22 @@ tab <- x %>%
 print(tab)
 
 
+### min/max historical
+
+historical.min <- x %>% filter(close==min(close)) %>% print()
+historical.max <- x %>% filter(close==max(close)) %>% print()
+
 ### asset price evolution
 
 cycles.dates<-c("2015-12-02/2016-08-31")
-risk.dates = c("2017-05-17")
-risk.labels = c("Delação JBS")
+risk.dates = c("2017-05-17", as.character(historical.min$date), as.character(historical.max$date))
+risk.labels = c("Delação JBS","Mínima Histórica","Máxima Histórica")
 
 chart.TimeSeries(data[,4], main = ii, colorset = "darkblue", 
                  period.areas = cycles.dates, period.color = "lightblue",
                  event.lines = risk.dates, event.labels = risk.labels, 
                  event.color = "darkred", lwd = 2,)  
 
-### min/max historical
-
-historical.min <- x %>% filter(close==min(close)) %>% print()
-historical.max <- x %>% filter(close==max(close)) %>% print()
 
 ### average daily evaluation/devaluation
 
@@ -132,3 +133,9 @@ cat("H0: A Amostra tem distribuição Poisson? \n", t3$p.value)
 ### calculate Binomial distribution P(x=1)
 
 teste$values %>% as.data.frame() %>% rename(values = ".") %>% filter(values!= 0)
+
+
+AirPassengers %>% 
+       forecast(level = 90) %>% 
+       hchart() %>% 
+       hc_add_theme(thm)
