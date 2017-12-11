@@ -1,0 +1,132 @@
+---
+title: "Relatorio de ações"
+output: 
+  flexdashboard::flex_dashboard:
+    theme: paper
+    orientation: rows
+    vertical_layout: scroll
+    social: menu
+    runtime: shiny
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(quantmod)
+library(dplyr)
+library(tidyr)
+library(PerformanceAnalytics)
+library(ggplot2)
+library(highcharter)
+library(viridisLite)
+library(forecast)
+library(treemap)
+library(flexdashboard)
+library(shiny)
+```
+
+Sidebar {.sidebar}
+=======================================================================
+
+### cran.rstudio.com
+
+Relatório de ações para os ativos que compõem o índice Ibovespa
+
+
+```{r}
+
+symbolList <- read.csv("~/Finances/cod_acoes.txt", sep="")  
+symbolList <- as.data.frame(symbolList)
+
+selectInput(inputId = 'Ativo', choices = symbolList, label = 'Select the stock to analyze', selected = "BBAS3.SA")
+
+textOutput("result")
+
+data <- getSymbols(Symbols = 'BVMF:BOVA11',
+                   src = 'google', 
+                   auto.assign = FALSE)
+  
+colnames(data) <- c("open","high","low","close","volume")  
+  
+x <- data %>% as.data.frame() %>% mutate(date = index(data)) %>% drop_na() %>% mutate(valuation = ave(.$close, FUN = function(y) c(0, diff(y))), daily.return = as.vector(dailyReturn(data)))
+
+tab <- x %>% 
+  mutate(ano = format(date,'%Y'), up = c(((.$close[2:length(.$close)]-.$close[1:length(.$close)-1])>0),"NA")) %>% group_by(ano) %>%
+  summarise(Open = first(open), Close = last(close), Min. = round(min(close,na.rm = TRUE),2), Max. = max(close,na.rm = TRUE), number.ups = sum(up=='TRUE'), number.downs = sum(up=='FALSE')) %>%
+  ungroup() %>% left_join(.,mutate(as.data.frame(round(annualReturn(data),3)), ano = format(index(annualReturn(data)), '%Y'))) 
+
+```
+
+
+
+Dashboard
+=======================================================================
+
+Row
+-----------------------------------------------------------------------
+
+
+### Last Closed {.value-box}
+
+```{r}
+
+# Emit the download rate
+renderValueBox({
+  atual.value <- x %>% filter(close==last(close)) %>% .$close
+  valueBox(
+    value = atual.value,
+    icon = "ion-stats-bars"
+  )
+})
+```
+
+### Historical.Min {.value-box}
+
+```{r}
+
+# Emit the download rate
+renderValueBox({
+  historical.min <- x %>% filter(close==min(close))
+  valueBox(
+    value = historical.min$close,
+    icon = "ion-arrow-graph-down-right",
+    color = if(last(data$close) <= historical.min$close) "warning" else "primary"
+  )
+})
+```
+
+### Historical.Max {.value-box}
+
+```{r}
+
+renderValueBox({
+  historical.max <- x %>% filter(close==max(close))
+  valueBox(
+    value = historical.max$close,
+    icon = "ion-arrow-graph-up-right",
+    color = if (last(data$close) >= historical.max$close) "warning" else "primary"
+  )
+})
+```
+
+
+Row
+-----------------------------------------------------------------------
+
+### Popularity by package (last 5 min) 
+
+```{r}
+
+hchart(data)
+
+```
+
+Row
+-----------------------------------------------------------------------
+
+### Percent of downloads (last 5 min) 
+
+```{r}
+
+knitr::kable(tab)
+
+```

@@ -1,5 +1,5 @@
 ---
-title: "RelatÃ³rio Ativos"
+title: "Relatório Ativos"
 output:
   html_document: default
   pdf_document: default

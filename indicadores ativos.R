@@ -4,6 +4,11 @@ library(dplyr)
 library(tidyr)
 library(PerformanceAnalytics)
 library(ggplot2)
+library(highcharter)
+library(viridisLite)
+library(forecast)
+library(treemap)
+library(flexdashboard)
 
 ## 
 
@@ -93,6 +98,7 @@ chart.TimeSeries(data[,4], main = ii, colorset = "darkblue",
                  event.lines = risk.dates, event.labels = risk.labels, 
                  event.color = "darkred", lwd = 2,)  
 
+hchart(data)
 
 ### average daily evaluation/devaluation
 
@@ -128,14 +134,10 @@ cat("H0: A Amostra tem distribuição Poisson? \n", t3$p.value)
 
 ### calculate Poisson distribution P(x>=2)
 
-1 - ppois(q = 2,lambda = 1)
+cat("Probabilidade da cotação cair duas vezes seguidas:\n", 1 - ppois(q = 2,lambda = 1)) 
+
 
 ### calculate Binomial distribution P(x=1)
 
 teste$values %>% as.data.frame() %>% rename(values = ".") %>% filter(values!= 0)
 
-
-AirPassengers %>% 
-       forecast(level = 90) %>% 
-       hchart() %>% 
-       hc_add_theme(thm)
