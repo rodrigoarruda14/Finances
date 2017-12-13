@@ -1,81 +1,141 @@
 ---
-title: "Relatório Ativos"
-output:
-  html_document: default
-  pdf_document: default
+title: "Relatorio de ações"
+output: 
+  flexdashboard::flex_dashboard:
+    theme: paper
+    orientation: rows
+    vertical_layout: scroll
+    social: menu
+    runtime: shiny
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
 
-## R Markdown
-
-Relatório que reune todos os ativos do indice Ibovespa. Medidas apresentadas:
-
-* Open: é o valor de abertura do ativo no ano correspondente;
-
-* Close: é o valor de fechamento do ativo no ano correspondente;
-
-* Min: é o valor de fechamento mínimo diário do ativo no ano correspondente;
-
-* Max: é o valor de fechamento máximo diário do ativo no ano correspondente;
-
-* number.ups: é a quantidade de vezes que o ativo valorizou no ano;
-
-* number.downs: é a quantidade de vezes que o ativo desvalorizou no ano;
-
-* yearly.returns: é a valorização percentual no ano correspondente;
-
-
-
-```{r cars, echo=FALSE, warning=FALSE, message=FALSE, results='asis'}
-
-
+library(flexdashboard)
 library(quantmod)
 library(dplyr)
 library(tidyr)
 library(PerformanceAnalytics)
 library(ggplot2)
-
-## 
+library(highcharter)
+library(viridisLite)
+library(forecast)
+library(treemap)
+library(flexdashboard)
+library(shiny)
 
 symbolList <- read.csv("~/Finances/cod_acoes.txt", sep="")  
 symbolList <- as.data.frame(symbolList)
 
-y <- head(symbolList)
+symbolList <- as.vector(t(extract(symbolList, col= Codigo, "[[A-Z]+[0-9]]"))) %>% paste0("BVMF:",.)
 
-d <- as.vector(t(extract(y, col= Codigo, "[[A-Z]+[0-9]]"))) %>% paste0("BVMF:",.)
-
-for (ii in d){
+database <- reactive({
+  stock <- getSymbols(Symbols = input$Ativo,
+                    src = 'google', 
+                    auto.assign = FALSE)
   
-  data <- getSymbols(Symbols = ii,
-                     src = 'google', 
-                     auto.assign = FALSE)
+  colnames(stock) <- c("open","high","low","close","volume")
   
-colnames(data) <- c("open","high","low","close","volume")  
-
-x <- data %>% as.data.frame() %>% mutate(date = index(data)) %>% drop_na() 
-
-tab <- x %>% 
-  mutate(ano = format(date,'%Y'), up = c(((.$close[2:length(.$close)]-.$close[1:length(.$close)-1])>0),"NA")) %>% group_by(ano) %>%
-  summarise(Open = first(open), Close = last(close), Min. = round(min(close,na.rm = TRUE),2), Max. = max(close,na.rm = TRUE), number.ups = sum(up=='TRUE'), number.downs = sum(up=='FALSE')) %>%
-  ungroup() %>% left_join(.,mutate(as.data.frame(round(annualReturn(data),3)), ano = format(index(annualReturn(data)), '%Y'))) %>%
-  knitr::kable()
-
-print(ii)
-print(tab)
-
-cycles.dates<-c("2015-12-02/2016-08-31")
-risk.dates = c("2017-05-17")
-risk.labels = c("Delação JBS")
-
-chart.TimeSeries(data[,4], colorset = "darkblue", 
-                 period.areas = cycles.dates, period.color = "lightblue",
-                 event.lines = risk.dates, event.labels = risk.labels, 
-                 event.color = "darkred", lwd = 2,)  
-
-}
+  stock <- stock %>% as.data.frame() %>% mutate(date = index(stock)) %>%   drop_na() %>% mutate(valuation = ave(.$close, FUN = function(y) c(0, diff(y))), daily.return = as.vector(dailyReturn(stock)))
+  
+return(stock)
+})
 
 ```
 
+Sidebar {.sidebar}
+=======================================================================
+
+### cran.rstudio.com
+
+Relatório de ações para os ativos que compõem o índice Ibovespa
+
+```{r}
+
+# Define inputs
+
+selectInput(inputId = 'Ativo', choices = symbolList, label = 'Select the stock to analyze', selected = "BBAS3.SA")
+
+```
+
+Dashboard
+=======================================================================
+
+Row
+-----------------------------------------------------------------------
+
+
+### Last Closed {.value-box}
+
+```{r}
+
+# Emit the download rate
+renderValueBox({
+  atual.value <- database() %>% filter(close==last(close)) %>% .$close
+  valueBox(
+    value = atual.value,
+    icon = "ion-stats-bars"
+  )
+})
+```
+
+### Historical.Min {.value-box}
+
+```{r}
+
+# Emit the download rate
+renderValueBox({
+  historical.min <- database() %>% filter(close==min(close))
+  valueBox(
+    value = historical.min$close,
+    icon = "ion-arrow-graph-down-right",
+    color = if(last(database()$close) <= historical.min$close) "warning" else "primary"
+  )
+})
+```
+
+### Historical.Max {.value-box}
+
+```{r}
+
+renderValueBox({
+  historical.max <- database() %>% filter(close==max(close))
+  valueBox(
+    value = historical.max$close,
+    icon = "ion-arrow-graph-up-right",
+    color = if (last(database()$close) >= historical.max$close) "warning" else "primary"
+  )
+})
+```
+
+
+Row
+-----------------------------------------------------------------------
+
+### Graph
+
+```{r}
+
+output <- renderHighchart({
+  graph <- database() %>% hchart()
+})
+
+highchartOutput(output())
+
+```
+
+<!-- Row -->
+<!-- ----------------------------------------------------------------------- -->
+
+<!-- ### Resume -->
+
+<!-- ```{r} -->
+
+<!-- renderTable({ -->
+<!-- tab <- database() %>% -->
+<!--   mutate(ano = format(date,'%Y'), up = c(((.$close[2:length(.$close)]-.$close[1:length(.$close)-1])>0),"NA")) %>% group_by(ano) %>% -->
+<!--   summarise(Open = first(open), Close = last(close), Min. = round(min(close,na.rm = TRUE),2), Max. = max(close,na.rm = TRUE), number.ups = sum(up=='TRUE'), number.downs = sum(up=='FALSE')) %>% -->
+<!--   ungroup() %>% left_join(.,mutate(as.data.frame(round(annualReturn(database),3)), ano = format(index(annualReturn(database())), '%Y'))) %>% -->
+<!--   knitr::kable() -->
+<!-- }) -->
+<!-- ``` -->

@@ -37,13 +37,39 @@ Relatório de ações para os ativos que compõem o índice Ibovespa
 symbolList <- read.csv("~/Finances/cod_acoes.txt", sep="")  
 symbolList <- as.data.frame(symbolList)
 
-selectInput(inputId = 'Ativo', choices = symbolList, label = 'Select the stock to analyze', selected = "BBAS3.SA")
+if (interactive()) {
 
-textOutput("result")
+ui <- fluidPage(
+  selectInput(inputId = 'Ativo', choices = symbolList, label = 'Select the stock to analyze', selected = "BBAS3.SA")
+)
 
-data <- getSymbols(Symbols = 'BVMF:BOVA11',
+server <- function(input, output, session) {
+  observe({
+    x <- input$Ativo
+
+    # Can use character(0) to remove all choices
+    if (is.null(x))
+      x <- character(0)
+
+    data <- getSymbols(Symbols = paste0("'BVMF:",input$Ativo,"'"),
                    src = 'google', 
                    auto.assign = FALSE)
+ 
+    # Can also set the label and select items
+    # updateSelectInput(session, "Ativo",
+    #   label = paste("Select input label", length(x)),
+    #   choices = x,
+    #   selected = tail(x, 1)
+    # )
+  })
+}
+
+shinyApp(ui, server)
+}
+
+# data <- getSymbols(Symbols = 'BVMF:BOVA11',
+#                    src = 'google', 
+#                    auto.assign = FALSE)
   
 colnames(data) <- c("open","high","low","close","volume")  
   
