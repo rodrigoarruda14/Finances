@@ -135,28 +135,20 @@ Row
 
 ```{r Render Table}
 
-# renderTable({
-#   DT::datatable(
-#   tab <-
-#   database() %>% mutate(ano = format(date, '%Y'), up =  c(((.$close[2:length(.$close)] -
-#   .$close[1:length(.$close) - 1]) > 0
-#   ), "NA")) %>% group_by(ano) %>%
-#   summarise(
-#   Open = first(open),
-#   Close = last(close),
-#   Min. = round(min(close, na.rm = TRUE), 2),
-#   Max. = max(close, na.rm = TRUE),
-#   number.ups = sum(up == 'TRUE'),
-#   number.downs = sum(up == 'FALSE')
-#   ) %>% ungroup()
-#   )})
-
-
-DT::renderDataTable({
-  data <- head(mtcars, n = input$maxrows)
-  DT::datatable(data, options = list(
-    bPaginate = FALSE
-  ))
-})
+renderTable({
+  DT::datatable(
+  tab <-
+  database() %>% mutate(ano = format(date, '%Y'), up =  c(((.$close[2:length(.$close)] -
+  .$close[1:length(.$close) - 1]) > 0
+  ), "NA")) %>% group_by(ano) %>%
+  summarise(
+  Open = first(open),
+  Close = last(close),
+  Min. = round(min(close, na.rm = TRUE), 2),
+  Max. = max(close, na.rm = TRUE),
+  number.ups = sum(up == 'TRUE'),
+  number.downs = sum(up == 'FALSE')
+  ) %>% ungroup()
+  )})
 
 ```
