@@ -109,7 +109,7 @@ renderValueBox({
 ```
 
 
-Row
+Row {data-height=650}
 -----------------------------------------------------------------------
 
 ### Graph
@@ -128,7 +128,7 @@ Row
 
 ```
 
-Row
+Row {data-width=800}
 -----------------------------------------------------------------------
 
 ### Resume
@@ -136,7 +136,6 @@ Row
 ```{r Render Table}
 
 renderTable({
-  DT::datatable(
   tab <-
   database() %>% mutate(ano = format(date, '%Y'), up =  c(((.$close[2:length(.$close)] -
   .$close[1:length(.$close) - 1]) > 0
@@ -149,6 +148,6 @@ renderTable({
   number.ups = sum(up == 'TRUE'),
   number.downs = sum(up == 'FALSE')
   ) %>% ungroup()
-  )})
+  })
 
 ```
