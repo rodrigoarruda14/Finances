@@ -37,8 +37,8 @@ database <- reactive({
   colnames(stock) <- c("open","high","low","close","volume")
   
   stock <- stock %>% as.data.frame() %>% mutate(date = index(stock)) %>%   drop_na() %>% mutate(valuation = ave(.$close, FUN = function(y) c(0, diff(y))), daily.return = as.vector(dailyReturn(stock)))
-  
-return(stock)
+
+ return(stock)
 })
 
 ```
@@ -109,33 +109,32 @@ renderValueBox({
 ```
 
 
-Row
------------------------------------------------------------------------
-
-### Graph
-
-```{r}
-
-output <- renderHighchart({
-  graph <- database() %>% hchart()
-})
-
-highchartOutput(output())
-
-```
-
 <!-- Row -->
 <!-- ----------------------------------------------------------------------- -->
 
-<!-- ### Resume -->
+<!-- ### Graph -->
 
 <!-- ```{r} -->
 
-<!-- renderTable({ -->
-<!-- tab <- database() %>% -->
-<!--   mutate(ano = format(date,'%Y'), up = c(((.$close[2:length(.$close)]-.$close[1:length(.$close)-1])>0),"NA")) %>% group_by(ano) %>% -->
-<!--   summarise(Open = first(open), Close = last(close), Min. = round(min(close,na.rm = TRUE),2), Max. = max(close,na.rm = TRUE), number.ups = sum(up=='TRUE'), number.downs = sum(up=='FALSE')) %>% -->
-<!--   ungroup() %>% left_join(.,mutate(as.data.frame(round(annualReturn(database),3)), ano = format(index(annualReturn(database())), '%Y'))) %>% -->
-<!--   knitr::kable() -->
+<!-- output <- renderHighchart({ -->
+<!--   graph <- database() %>% hchart() -->
 <!-- }) -->
+
+<!-- highchartOutput(output()) -->
+
 <!-- ``` -->
+
+Row
+-----------------------------------------------------------------------
+
+### Resume
+
+```{r}
+
+renderTable({
+tab <- database() %>%
+  mutate(ano = format(date,'%Y'), up = c(((.$close[2:length(.$close)]-.$close[1:length(.$close)-1])>0),"NA")) %>% group_by(ano) %>%
+  summarise(Open = first(open), Close = last(close), Min. = round(min(close,na.rm = TRUE),2), Max. = max(close,na.rm = TRUE), number.ups = sum(up=='TRUE'), number.downs = sum(up=='FALSE')) %>%
+  ungroup() 
+})
+```
