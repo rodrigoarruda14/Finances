@@ -20,7 +20,7 @@ library(ggplot2)
 library(highcharter)
 library(viridisLite)
 library(forecast)
-library(treemap)
+require(treemap)
 library(flexdashboard)
 library(shiny)
 
@@ -50,7 +50,7 @@ Sidebar {.sidebar}
 
 Relatório de ações para os ativos que compõem o índice Ibovespa
 
-```{r}
+```{r Sidebar}
 
 # Define inputs
 
@@ -67,7 +67,7 @@ Row
 
 ### Last Closed {.value-box}
 
-```{r}
+```{r Atual Value}
 
 # Emit the download rate
 renderValueBox({
@@ -81,7 +81,7 @@ renderValueBox({
 
 ### Historical.Min {.value-box}
 
-```{r}
+```{r Historical Min}
 
 # Emit the download rate
 renderValueBox({
@@ -96,7 +96,7 @@ renderValueBox({
 
 ### Historical.Max {.value-box}
 
-```{r}
+```{r Historical Max}
 
 renderValueBox({
   historical.max <- database() %>% filter(close==max(close))
@@ -114,28 +114,42 @@ Row
 
 ### Graph
 
-```{r}
+```{r Render Graphics}
 
-output <- renderHighchart({
-  graph <- database() %>% hchart()
-})
+ renderHighchart({
+   
+   x <- getSymbols(Symbols = input$Ativo,
+                   src = 'google', 
+                   auto.assign = FALSE)
+   hchart(x)
+ })
 
-highchartOutput(output())
+#highchartOutput(highchartOutput)
 
 ```
 
-<!-- Row -->
-<!-- ----------------------------------------------------------------------- -->
+Row
+-----------------------------------------------------------------------
 
-<!-- ### Resume -->
+### Resume
 
-<!-- ```{r} -->
+```{r Render Table}
 
-<!-- renderTable({ -->
-<!-- tab <- database() %>% -->
-<!--   mutate(ano = format(date,'%Y'), up = c(((.$close[2:length(.$close)]-.$close[1:length(.$close)-1])>0),"NA")) %>% group_by(ano) %>% -->
-<!--   summarise(Open = first(open), Close = last(close), Min. = round(min(close,na.rm = TRUE),2), Max. = max(close,na.rm = TRUE), number.ups = sum(up=='TRUE'), number.downs = sum(up=='FALSE')) %>% -->
-<!--   ungroup() %>% left_join(.,mutate(as.data.frame(round(annualReturn(database),3)), ano = format(index(annualReturn(database())), '%Y'))) %>% -->
-<!--   knitr::kable() -->
-<!-- }) -->
-<!-- ``` -->
+renderTable({
+  DT::datatable(
+  tab <-
+  database() %>% mutate(ano = format(date, '%Y'), up =  c(((.$close[2:length(.$close)] -
+  .$close[1:length(.$close) - 1]) > 0
+  ), "NA")) %>% group_by(ano) %>%
+  summarise(
+  Open = first(open),
+  Close = last(close),
+  Min. = round(min(close, na.rm = TRUE), 2),
+  Max. = max(close, na.rm = TRUE),
+  number.ups = sum(up == 'TRUE'),
+  number.downs = sum(up == 'FALSE')
+  ) %>% ungroup()
+  )})
+
+
+```
