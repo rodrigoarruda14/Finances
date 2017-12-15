@@ -65,7 +65,7 @@ for(j in anos){
 
 ### summary annual indicators
 
-data <- getSymbols(Symbols = 'BVMF:ELET6',
+data <- getSymbols(Symbols = 'BVMF:BOVA11',
                    src = 'google', 
                    auto.assign = FALSE)
   
@@ -141,3 +141,8 @@ cat("Probabilidade da cotação cair duas vezes seguidas:\n", 1 - ppois(q = 2,la
 
 teste$values %>% as.data.frame() %>% rename(values = ".") %>% filter(values!= 0)
 
+y <- new.env() %>% as.list()
+
+y <- allReturns(getSymbols(Symbols = d,
+                           src = 'google', 
+                           auto.assign = TRUE))
