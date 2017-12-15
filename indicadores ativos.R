@@ -65,7 +65,7 @@ for(j in anos){
 
 ### summary annual indicators
 
-data <- getSymbols(Symbols = 'BVMF:BOVA11',
+data <- getSymbols(Symbols = 'BVMF:ELET6',
                    src = 'google', 
                    auto.assign = FALSE)
   

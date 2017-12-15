@@ -1,13 +1,18 @@
 ---
-title: "Relatorio de ações"
+title: "Report for stocks"
 output: 
   flexdashboard::flex_dashboard:
-    theme: paper
+    theme: simplex
     orientation: rows
     vertical_layout: scroll
     social: menu
     runtime: shiny
 ---
+
+<style>
+body {
+text-align: justify}
+</style>
 
 ```{r setup, include=FALSE}
 
@@ -24,13 +29,26 @@ require(treemap)
 library(flexdashboard)
 library(shiny)
 
+thm <- 
+  hc_theme(
+    colors = c("#1a6ecc", "#434348", "#90ed7d"),
+    chart = list(
+      backgroundColor = "transparent",
+      style = list(fontFamily = "Source Sans Pro")
+    ),
+    xAxis = list(
+      gridLineWidth = 1
+    )
+  )
+
+
 symbolList <- read.csv("~/Finances/cod_acoes.txt", sep="")  
 symbolList <- as.data.frame(symbolList)
 
-symbolList <- as.vector(t(extract(symbolList, col= Codigo, "[[A-Z]+[0-9]]"))) %>% paste0("BVMF:",.)
+symbolList <- as.vector(t(extract(symbolList, col= Codigo, "[[A-Z]+[0-9]]"))) #%>% paste0("BVMF:",.)
 
 database <- reactive({
-  stock <- getSymbols(Symbols = input$Ativo,
+  stock <- getSymbols(Symbols = paste0("BVMF:",input$Ativo),
                     src = 'google', 
                     auto.assign = FALSE)
   
@@ -46,17 +64,15 @@ return(stock)
 Sidebar {.sidebar}
 =======================================================================
 
-### cran.rstudio.com
-
-Relatório de ações para os ativos que compõem o índice Ibovespa
-
 ```{r Sidebar}
 
 # Define inputs
 
-selectInput(inputId = 'Ativo', choices = symbolList, label = 'Select the stock to analyze', selected = "BBAS3.SA")
+selectInput(inputId = 'Ativo', choices = symbolList, label = 'Select the stock to analyze')
 
 ```
+
+The maximum and minimum values are defined based on closing prices
 
 Dashboard
 =======================================================================
@@ -79,7 +95,7 @@ renderValueBox({
 })
 ```
 
-### Historical.Min {.value-box}
+### Historical Minimum {.value-box}
 
 ```{r Historical Min}
 
@@ -89,12 +105,12 @@ renderValueBox({
   valueBox(
     value = historical.min$close,
     icon = "ion-arrow-graph-down-right",
-    color = if(last(database()$close) <= historical.min$close) "warning" else "primary"
+     
   )
 })
 ```
 
-### Historical.Max {.value-box}
+### Historical Maximun {.value-box}
 
 ```{r Historical Max}
 
@@ -109,19 +125,20 @@ renderValueBox({
 ```
 
 
-Row {data-height=650}
+Row {data-height=500}
 -----------------------------------------------------------------------
 
-### Graph
+### Graphic
 
 ```{r Render Graphics}
 
  renderHighchart({
    
-   x <- getSymbols(Symbols = input$Ativo,
+   x <- getSymbols(Symbols = paste0("BVMF:",input$Ativo),
                    src = 'google', 
                    auto.assign = FALSE)
-   hchart(x)
+   
+   hchart(x) %>% hc_add_theme(thm)
  })
 
 #highchartOutput(highchartOutput)
@@ -131,7 +148,7 @@ Row {data-height=650}
 Row {data-width=800}
 -----------------------------------------------------------------------
 
-### Resume
+### Summary Table
 
 ```{r Render Table}
 
