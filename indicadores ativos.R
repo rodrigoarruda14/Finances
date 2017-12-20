@@ -143,6 +143,57 @@ teste$values %>% as.data.frame() %>% rename(values = ".") %>% filter(values!= 0)
 
 y <- new.env() %>% as.list()
 
-y <- allReturns(getSymbols(Symbols = d,
+y <- getSymbols(Symbols = d,
                            src = 'google', 
-                           auto.assign = TRUE))
+                           auto.assign = TRUE)
+
+
+
+symbolList <- read.csv("~/Finances/cod_acoes.txt", sep="")  
+symbolList <- as.data.frame(symbolList)
+
+symbolList <- as.vector(t(extract(symbolList, col= Codigo, "[[A-Z]+[0-9]]")))
+
+  stock <- getSymbols(Symbols = paste0("BVMF:",ii),
+                      src = 'google', 
+                      auto.assign = FALSE)
+  
+  colnames(stock) <- c("open","high","low","close","volume")
+  
+  stock <- stock %>% as.data.frame() %>% mutate(date = index(stock)) %>%   drop_na() %>% mutate(valuation = ave(.$close, FUN = function(y) c(0, diff(y))), daily.return = as.vector(dailyReturn(stock)))
+  
+
+
+
+# Function to calculate daily, weekly and monthly returns
+valuation <- function(ii)
+{
+    rtn <- as.data.frame(NULL)
+    stk <- getSymbols(Symbols = paste0("BVMF:",ii), src = 'google', auto.assign = FALSE, warnings = FALSE)
+    rtn.1 <- (last(dailyReturn(stk))*100) %>% round(.,2)
+    rtn.2 <- (last(weeklyReturn(stk))*100) %>% round(.,2)
+    rtn.3 <- (last(monthlyReturn(stk))*100) %>% round(.,2)
+    rtn <- cbind.data.frame(ii, rtn.1, rtn.2, rtn.3) %>% 
+      rename(Stock = ii, Daily = rtn.1, Weekly = rtn.2, Monthly = rtn.3)
+    
+}
+
+# Calculate returns to all the stocks in Ibovespa 
+t <- NULL
+
+for(i in symbolList)
+{
+  t <- rbind(t, valuation(i))
+}
+
+# Function to calculate daily, weekly and monthly minimum
+min.n <- function(d, n)
+{
+   minimos <- NULL
+    minimos[[1]] <- d %>% filter(Daily %in% head(sort(d$Daily), n= 5)) %>% select(Stock, Daily) 
+    minimos[[2]] <- d %>% filter(Weekly %in% head(sort(d$Weekly), n= 5)) %>% select(Stock, Weekly) 
+    minimos[[3]] <- d %>% filter(Monthly %in% head(sort(d$Monthly), n= 5)) %>% select(Stock, Monthly)
+  return(minimos)
+}
+
+n.min.daily %>% hchart("bar")

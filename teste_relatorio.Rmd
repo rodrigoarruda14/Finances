@@ -45,7 +45,7 @@ thm <-
 symbolList <- read.csv("~/Finances/cod_acoes.txt", sep="")  
 symbolList <- as.data.frame(symbolList)
 
-symbolList <- as.vector(t(extract(symbolList, col= Codigo, "[[A-Z]+[0-9]]"))) #%>% paste0("BVMF:",.)
+symbolList <- as.vector(t(extract(symbolList, col= Codigo, "[[A-Z]+[0-9]]")))
 
 database <- reactive({
   stock <- getSymbols(Symbols = paste0("BVMF:",input$Ativo),
@@ -154,16 +154,16 @@ Row {data-width=800}
 
 renderTable({
   tab <-
-  database() %>% mutate(ano = format(date, '%Y'), up =  c(((.$close[2:length(.$close)] -
+  database() %>% mutate(Year = format(date, '%Y'), up =  c(((.$close[2:length(.$close)] -
   .$close[1:length(.$close) - 1]) > 0
-  ), "NA")) %>% group_by(ano) %>%
+  ), "NA")) %>% group_by(Year) %>%
   summarise(
   Open = first(open),
   Close = last(close),
   Min. = round(min(close, na.rm = TRUE), 2),
   Max. = max(close, na.rm = TRUE),
-  number.ups = sum(up == 'TRUE'),
-  number.downs = sum(up == 'FALSE')
+  Ups = sum(up == 'TRUE'),
+  Downs = sum(up == 'FALSE')
   ) %>% ungroup()
   })
 
@@ -171,3 +171,49 @@ renderTable({
 
 Generally Version
 =======================================================================
+
+<!-- ```{r global} -->
+
+<!-- # Function to calculate daily, weekly and monthly returns -->
+<!-- valuation <- function(ii) -->
+<!-- { -->
+<!--     rtn <- as.data.frame(NULL) -->
+<!--     stk <- getSymbols(Symbols = paste0("BVMF:",ii), src = 'google', auto.assign = FALSE, warnings = FALSE) -->
+<!--     rtn.1 <- (last(dailyReturn(stk))*100) %>% round(.,2) -->
+<!--     rtn.2 <- (last(weeklyReturn(stk))*100) %>% round(.,2) -->
+<!--     rtn.3 <- (last(monthlyReturn(stk))*100) %>% round(.,2) -->
+<!--     rtn <- cbind.data.frame(ii, rtn.1, rtn.2, rtn.3) %>%  -->
+<!--       rename(Stock = ii, Daily = rtn.1, Weekly = rtn.2, Monthly = rtn.3) -->
+
+<!-- } -->
+
+<!-- # Calculate returns to all the stocks in Ibovespa  -->
+<!-- t <- NULL -->
+
+<!-- for(i in symbolList) -->
+<!-- { -->
+<!--   t <- rbind(t, valuation(i)) -->
+<!-- } -->
+
+<!-- # Function to calculate daily, weekly and monthly minimum -->
+<!-- min.n <- function(d, n) -->
+<!-- { -->
+<!--    minimos <- NULL -->
+<!--     minimos[[1]] <- d %>% filter(Daily %in% head(sort(d$Daily), n= 5)) %>% select(Stock, Daily)  -->
+<!--     minimos[[2]] <- d %>% filter(Weekly %in% head(sort(d$Weekly), n= 5)) %>% select(Stock, Weekly)  -->
+<!--     minimos[[3]] <- d %>% filter(Monthly %in% head(sort(d$Monthly), n= 5)) %>% select(Stock, Monthly) -->
+<!--   return(minimos) -->
+<!-- } -->
+<!-- ``` -->
+
+
+<!-- Row -->
+<!-- ----------------------------------------------------------------------- -->
+
+<!-- ### Graphic -->
+
+<!-- ```{r} -->
+
+<!-- min.graph <-  -->
+
+<!-- ``` -->
