@@ -9,6 +9,7 @@ library(viridisLite)
 library(forecast)
 library(treemap)
 library(flexdashboard)
+library(plotly)
 
 ## 
 
@@ -147,22 +148,13 @@ y <- getSymbols(Symbols = d,
                            src = 'google', 
                            auto.assign = TRUE)
 
+#########################
 
-
+### Global
 symbolList <- read.csv("~/Finances/cod_acoes.txt", sep="")  
 symbolList <- as.data.frame(symbolList)
 
 symbolList <- as.vector(t(extract(symbolList, col= Codigo, "[[A-Z]+[0-9]]")))
-
-  stock <- getSymbols(Symbols = paste0("BVMF:",ii),
-                      src = 'google', 
-                      auto.assign = FALSE)
-  
-  colnames(stock) <- c("open","high","low","close","volume")
-  
-  stock <- stock %>% as.data.frame() %>% mutate(date = index(stock)) %>%   drop_na() %>% mutate(valuation = ave(.$close, FUN = function(y) c(0, diff(y))), daily.return = as.vector(dailyReturn(stock)))
-  
-
 
 
 # Function to calculate daily, weekly and monthly returns
@@ -173,7 +165,8 @@ valuation <- function(ii)
     rtn.1 <- (last(dailyReturn(stk))*100) %>% round(.,2)
     rtn.2 <- (last(weeklyReturn(stk))*100) %>% round(.,2)
     rtn.3 <- (last(monthlyReturn(stk))*100) %>% round(.,2)
-    rtn <- cbind.data.frame(ii, rtn.1, rtn.2, rtn.3) %>% 
+    last.date <- index(tail(dailyReturn(stk), n = 1))
+    rtn <- cbind.data.frame(ii, rtn.1, rtn.2, rtn.3, last.date) %>% 
       rename(Stock = ii, Daily = rtn.1, Weekly = rtn.2, Monthly = rtn.3)
     
 }
@@ -186,14 +179,28 @@ for(i in symbolList)
   t <- rbind(t, valuation(i))
 }
 
+###
+
+### Local
 # Function to calculate daily, weekly and monthly minimum
 min.n <- function(d, n)
 {
    minimos <- NULL
-    minimos[[1]] <- d %>% filter(Daily %in% head(sort(d$Daily), n= 5)) %>% select(Stock, Daily) 
-    minimos[[2]] <- d %>% filter(Weekly %in% head(sort(d$Weekly), n= 5)) %>% select(Stock, Weekly) 
-    minimos[[3]] <- d %>% filter(Monthly %in% head(sort(d$Monthly), n= 5)) %>% select(Stock, Monthly)
+    minimos[[1]] <- d %>% filter(Daily %in% head(sort(d$Daily), n= n)) %>% select(Stock, Daily) 
+    minimos[[2]] <- d %>% filter(Weekly %in% head(sort(d$Weekly), n= n)) %>% select(Stock, Weekly) 
+    minimos[[3]] <- d %>% filter(Monthly %in% head(sort(d$Monthly), n= n)) %>% select(Stock, Monthly)
   return(minimos)
 }
 
-n.min.daily %>% hchart("bar")
+
+bar_plot <- function(t,n){
+  x <- min.n(t,n)
+  p <- plot_ly(
+                x = as.vector(x[[1]][,1]),
+                y = as.vector(x[[1]][,2]),
+                type = "bar") %>%
+       layout(title = "Minors Daily Returns",
+              xaxis = list(title = "Stocks"),
+              yaxis = list(title = "Daily Returns(%)"))
+  return(p)
+}
