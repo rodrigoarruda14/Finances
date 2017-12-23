@@ -28,6 +28,8 @@ library(forecast)
 require(treemap)
 library(flexdashboard)
 library(shiny)
+library(plotly)
+library(ggthemes)
 
 thm <- 
   hc_theme(
@@ -59,6 +61,26 @@ database <- reactive({
 return(stock)
 })
 
+# Function to calculate daily, weekly and monthly minimum
+min.n <- function(d, n = input$Qtd)
+{
+   minimos <- NULL
+    minimos[[1]] <- d %>% filter(Daily %in% head(sort(d$Daily), n= n)) %>% select(Stock, Daily) 
+    minimos[[2]] <- d %>% filter(Weekly %in% head(sort(d$Weekly), n= n)) %>% select(Stock, Weekly) 
+    minimos[[3]] <- d %>% filter(Monthly %in% head(sort(d$Monthly), n= n)) %>% select(Stock, Monthly)
+  return(minimos)
+}
+
+# Function to calculate daily, weekly and monthly maximum
+max.n <- function(d, n = input$Qtd)
+{
+   maximos <- NULL
+    maximos[[1]] <- d %>% filter(Daily %in% tail(sort(d$Daily), n= n)) %>% select(Stock, Daily)
+    maximos[[2]] <- d %>% filter(Weekly %in% tail(sort(d$Weekly), n= n)) %>% select(Stock, Weekly)
+    maximos[[3]] <- d %>% filter(Monthly %in% tail(sort(d$Monthly), n= n)) %>% select(Stock, Monthly)
+  return(maximos)
+}
+
 ```
 
 Sidebar {.sidebar}
@@ -69,6 +91,9 @@ Sidebar {.sidebar}
 # Define inputs
 
 selectInput(inputId = 'Ativo', choices = symbolList, label = 'Select the stock to analyze')
+
+sliderInput('Qtd', label = 'Amount of Assets', min = 1, max = 10, value = 3, step = 1)
+
 
 ```
 
@@ -169,51 +194,190 @@ renderTable({
 
 ```
 
-Generally Version
+Generally Version {data-orientation=columns}
 =======================================================================
 
-<!-- ```{r global} -->
+```{r, warning=FALSE}
 
-<!-- # Function to calculate daily, weekly and monthly returns -->
-<!-- valuation <- function(ii) -->
-<!-- { -->
-<!--     rtn <- as.data.frame(NULL) -->
-<!--     stk <- getSymbols(Symbols = paste0("BVMF:",ii), src = 'google', auto.assign = FALSE, warnings = FALSE) -->
-<!--     rtn.1 <- (last(dailyReturn(stk))*100) %>% round(.,2) -->
-<!--     rtn.2 <- (last(weeklyReturn(stk))*100) %>% round(.,2) -->
-<!--     rtn.3 <- (last(monthlyReturn(stk))*100) %>% round(.,2) -->
-<!--     rtn <- cbind.data.frame(ii, rtn.1, rtn.2, rtn.3) %>%  -->
-<!--       rename(Stock = ii, Daily = rtn.1, Weekly = rtn.2, Monthly = rtn.3) -->
+# Function to calculate daily, weekly and monthly returns
+valuation <- function(ii)
+{
+    rtn <- as.data.frame(NULL)
+    stk <- getSymbols(Symbols = paste0("BVMF:",ii), src = 'google', auto.assign = FALSE, warnings = FALSE)
+    rtn.1 <- (last(dailyReturn(stk))*100) %>% round(.,2)
+    rtn.2 <- (last(weeklyReturn(stk))*100) %>% round(.,2)
+    rtn.3 <- (last(monthlyReturn(stk))*100) %>% round(.,2)
+    last.date <- index(tail(dailyReturn(stk), n = 1))
+    rtn <- cbind.data.frame(ii, rtn.1, rtn.2, rtn.3, last.date) %>% 
+      rename(Stock = ii, Daily = rtn.1, Weekly = rtn.2, Monthly = rtn.3)
+    
+}
 
-<!-- } -->
+# Calculate returns to all the stocks in Ibovespa 
+t <- NULL
 
-<!-- # Calculate returns to all the stocks in Ibovespa  -->
-<!-- t <- NULL -->
+for(i in symbolList)
+{
+  t <- rbind(t, valuation(i))
+}
 
-<!-- for(i in symbolList) -->
-<!-- { -->
-<!--   t <- rbind(t, valuation(i)) -->
-<!-- } -->
-
-<!-- # Function to calculate daily, weekly and monthly minimum -->
-<!-- min.n <- function(d, n) -->
-<!-- { -->
-<!--    minimos <- NULL -->
-<!--     minimos[[1]] <- d %>% filter(Daily %in% head(sort(d$Daily), n= 5)) %>% select(Stock, Daily)  -->
-<!--     minimos[[2]] <- d %>% filter(Weekly %in% head(sort(d$Weekly), n= 5)) %>% select(Stock, Weekly)  -->
-<!--     minimos[[3]] <- d %>% filter(Monthly %in% head(sort(d$Monthly), n= 5)) %>% select(Stock, Monthly) -->
-<!--   return(minimos) -->
-<!-- } -->
-<!-- ``` -->
+```
 
 
-<!-- Row -->
-<!-- ----------------------------------------------------------------------- -->
+Column {.tabset data-width=500}
+-----------------------------------------------------------------------
 
-<!-- ### Graphic -->
+### Daily 
 
-<!-- ```{r} -->
+```{r}
 
-<!-- min.graph <-  -->
+  renderHighchart({
+  
+x <- min.n(t,n = input$Qtd)
+y <- x[[1]] %>% as.data.frame() %>% arrange(Daily)
+    chart <- highchart() %>%
+      hc_chart(type = 'column') %>%
+      hc_legend(enabled = FALSE) %>%
+      hc_xAxis(categories = as.vector(y[,1]),
+               title = list(text = 'Stocks')) %>%
+      hc_yAxis(title = list(text = 'Daily Returns(%)')) %>%
+      hc_plotOptions(series = list(dataLabels = list(enabled = TRUE))) %>%
+      hc_add_series(name = 'Population, 2010', data =as.vector(y[,2])) %>% hc_add_theme(hc_theme_smpl()) %>%
+       hc_colors(c('#d01010', '#d01010')) %>%
+       hc_tooltip(enabled = FALSE)
+    
+    chart
 
-<!-- ``` -->
+  })
+
+
+```
+
+
+### Weekly
+
+```{r}
+
+  renderHighchart({
+x <- min.n(t,n = input$Qtd)
+y <- x[[2]] %>% as.data.frame() %>% arrange(Weekly)
+    chart2 <- highchart() %>%
+      hc_chart(type = 'column') %>%
+      hc_legend(enabled = FALSE) %>%
+      hc_xAxis(categories = as.vector(y[,1]),
+               title = list(text = 'Stocks')) %>%
+      hc_yAxis(title = list(text = 'Daily Returns(%)')) %>%
+      hc_plotOptions(series = list(dataLabels = list(enabled = TRUE))) %>%
+      hc_add_series(name = 'Population, 2010', data =as.vector(y[,2])) %>% hc_add_theme(hc_theme_smpl()) %>%
+       hc_colors(c('#d01010', '#d01010')) %>%
+       hc_tooltip(enabled = FALSE)
+
+    chart2
+
+  })
+
+highchartOutput('barplot')
+
+```
+
+
+### Monthly
+
+```{r}
+
+  renderHighchart({
+    x <- min.n(t,n = input$Qtd)
+    y <- x[[3]] %>% as.data.frame() %>% arrange(Monthly)
+    chart3 <- highchart() %>%
+      hc_chart(type = 'column') %>%
+      hc_legend(enabled = FALSE) %>%
+      hc_xAxis(categories = as.vector(y[,1]),
+               title = list(text = 'Stocks')) %>%
+      hc_yAxis(title = list(text = 'Daily Returns(%)')) %>%
+      hc_plotOptions(series = list(dataLabels = list(enabled = TRUE))) %>%
+      hc_add_series(name = 'Population, 2010', data =as.vector(y[,2])) %>% hc_add_theme(hc_theme_smpl()) %>%
+       hc_colors(c('#d01010', '#d01010')) %>%
+       hc_tooltip(enabled = FALSE)
+
+    chart3
+
+  })
+
+```
+
+Column {.tabset data-width=500}
+-----------------------------------------------------------------------
+
+### Daily
+
+```{r}
+
+renderHighchart({
+x <- max.n(t,n = input$Qtd)
+y <- x[[1]] %>% as.data.frame() %>% arrange(Daily)
+    chart.1 <- highchart() %>%
+      hc_chart(type = 'column') %>%
+      hc_legend(enabled = FALSE) %>%
+      hc_xAxis(categories = as.vector(y[,1]),
+               title = list(text = 'Stocks')) %>%
+      hc_yAxis(title = list(text = 'Daily Returns(%)')) %>%
+      hc_plotOptions(series = list(dataLabels = list(enabled = TRUE))) %>%
+      hc_add_series(name = 'Population, 2010', data =as.vector(y[,2])) %>% hc_add_theme(hc_theme_smpl()) %>%
+       hc_colors(c('#1079d0', '#1079d0')) %>%
+       hc_tooltip(enabled = FALSE)
+
+    chart.1
+
+  })
+
+```
+
+
+### Weekly
+
+```{r}
+
+renderHighchart({
+x <- max.n(t,n = input$Qtd)
+y <- x[[2]] %>% as.data.frame() %>% arrange(Weekly)
+    chart.2 <- highchart() %>%
+      hc_chart(type = 'column') %>%
+      hc_legend(enabled = FALSE) %>%
+      hc_xAxis(categories = as.vector(y[,1]),
+               title = list(text = 'Stocks')) %>%
+      hc_yAxis(title = list(text = 'Daily Returns(%)')) %>%
+      hc_plotOptions(series = list(dataLabels = list(enabled = TRUE))) %>%
+      hc_add_series(name = 'Population, 2010', data =as.vector(y[,2])) %>% hc_add_theme(hc_theme_smpl()) %>%
+       hc_colors(c('#1079d0', '#1079d0')) %>%
+       hc_tooltip(enabled = FALSE)
+
+    chart.2
+
+  })
+
+```
+
+
+### Monthly
+
+```{r}
+
+renderHighchart({
+x <- max.n(t,n = input$Qtd)
+y <- x[[3]] %>% as.data.frame() %>% arrange(Monthly)
+    chart.3 <- highchart() %>%
+      hc_chart(type = 'column') %>%
+      hc_legend(enabled = FALSE) %>%
+      hc_xAxis(categories = as.vector(y[,1]),
+               title = list(text = 'Stocks')) %>%
+      hc_yAxis(title = list(text = 'Daily Returns(%)')) %>%
+      hc_plotOptions(series = list(dataLabels = list(enabled = TRUE))) %>%
+      hc_add_series(name = 'Population, 2010', data =as.vector(y[,2])) %>% hc_add_theme(hc_theme_smpl()) %>%
+       hc_colors(c('#1079d0', '#1079d0')) %>%
+       hc_tooltip(enabled = FALSE)
+
+    chart.3
+
+  })
+
+```

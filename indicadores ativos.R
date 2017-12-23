@@ -185,10 +185,10 @@ for(i in symbolList)
 # Function to calculate daily, weekly and monthly minimum
 min.n <- function(d, n)
 {
-   minimos <- NULL
-    minimos[[1]] <- d %>% filter(Daily %in% head(sort(d$Daily), n= n)) %>% select(Stock, Daily) 
-    minimos[[2]] <- d %>% filter(Weekly %in% head(sort(d$Weekly), n= n)) %>% select(Stock, Weekly) 
-    minimos[[3]] <- d %>% filter(Monthly %in% head(sort(d$Monthly), n= n)) %>% select(Stock, Monthly)
+  minimos <- NULL
+  minimos[[1]] <- d %>% filter(Daily %in% head(sort(d$Daily), n= n)) %>% select(Stock, Daily) 
+  minimos[[2]] <- d %>% filter(Weekly %in% head(sort(d$Weekly), n= n)) %>% select(Stock, Weekly) 
+  minimos[[3]] <- d %>% filter(Monthly %in% head(sort(d$Monthly), n= n)) %>% select(Stock, Monthly)
   return(minimos)
 }
 
@@ -204,3 +204,39 @@ bar_plot <- function(t,n){
               yaxis = list(title = "Daily Returns(%)"))
   return(p)
 }
+
+
+
+renderHighchart({
+  
+  x <- min.n(t,n = input$Qtd)
+  chart <- highchart() %>%
+    hc_chart(type = 'column') %>%
+    hc_legend(enabled = FALSE) %>%
+    hc_xAxis(categories = as.vector(x[[1]][,1]),
+             title = list(text = 'Stocks')) %>%
+    hc_yAxis(title = list(text = 'Daily Returns(%)')) %>%
+    hc_plotOptions(series = list(dataLabels = list(enabled = TRUE))) %>%
+    hc_add_series(name = 'Population, 2010', data =as.vector(x[[1]][,2])) %>% hc_add_theme(hc_theme_smpl()) %>%
+    hc_colors(c('#d01010', '#d01010')) %>%
+    hc_tooltip(enabled = FALSE)
+  
+  chart
+  
+})
+
+
+renderTable({
+  tab <-
+    database() %>% mutate(Year = format(date, '%Y'), up =  c(((.$close[2:length(.$close)] -
+                                                                 .$close[1:length(.$close) - 1]) > 0
+    ), "NA")) %>% group_by(Year) %>%
+    summarise(
+      Open = first(open),
+      Close = last(close),
+      Min. = round(min(close, na.rm = TRUE), 2),
+      Max. = max(close, na.rm = TRUE),
+      Ups = sum(up == 'TRUE'),
+      Downs = sum(up == 'FALSE')
+    ) %>% ungroup()
+})
